@@ -69,7 +69,7 @@ func createBaiReader(baiFile string) *bam.Index {
 	return reader
 }
 
-func ViewOnRegion(bamFile string, id, start, end int) error {
+func BamViewOnRegion(bamFile string, id, start, end int) error {
 	// standard bam content seek for a special genome region
 	bamReader := seekBamReader(bamFile)
 	idx := createBaiReader(getBaiFromBamPath(bamFile))

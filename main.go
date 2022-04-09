@@ -30,6 +30,6 @@ import (
 func main() {
 
 	fmt.Println("Begin to some bam process utilities:")
-	bam.ViewOnRegion(os.Args[1], 6, 140453094, 140453184)
+	stats.BamViewOnRegion(os.Args[1], 6, 140453094, 140453184)
 
 }
