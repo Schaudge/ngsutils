@@ -26,9 +26,11 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
+	"github.com/Schaudge/ngsutils/db"
+	"github.com/Schaudge/ngsutils/utils"
 	"github.com/biogo/hts/bam"
-	"github.com/biogo/hts/sam"
 )
 
 var bamReader *bam.Reader
@@ -89,44 +91,40 @@ func BamViewOnRegion(bamFile string, id, start, end int) error {
 	return i.Close()
 }
 
-// WriteSamSetOut writes all sam records sets into a bam file.
-func WriteSamSetOut(outBamPath string, outSamSet []*sam.Record) error {
-	fh, _ := os.Open(outBamPath)
-	bw, _ := bam.NewWriter(fh, bamReader.Header().Clone(), 1)
-	for _, record := range outSamSet {
-		bw.Write(record)
-	}
-	return bw.Close()
-}
-
 // ExtractSvSamSet extract all break point context sam records
-func ExtractSvSamSet(bamFile string, chr1, bp1, chr2, bp2 int) error {
+func ExtractSvSamSet(bamFile string, bpPair db.SvBpPair) error {
 	// standard utils content seek for a special genome region
 	bamReader = seekBamReader(bamFile)
 	idx := createBaiReader(getBaiFromBamPath(bamFile))
-	if chr1 > chr2 {
-		chr1, chr2 = chr2, chr1
-	} else if chr1 == chr2 && bp1 > bp2 {
-		bp1, bp2 = bp2, bp1
+
+	// output bam file settings
+	outBam, err := os.Create(filepath.Dir(bamFile) + "/" + bpPair.Gene1 + "-" + bpPair.Gene2 + ".bam")
+	panicError(err)
+	bw, _ := bam.NewWriter(outBam, bamReader.Header().Clone(), 1)
+	defer bw.Close()
+
+	chr1, chr2 := utils.CtgName2Id(bpPair.Chr1), utils.CtgName2Id(bpPair.Chr2)
+	orderedBpPair := [][]int{
+		[]int{chr1, bpPair.Bp1, chr2, bpPair.Bp2},
+		[]int{chr2, bpPair.Bp2, chr1, bpPair.Bp1},
 	}
-	associatedBpPair := [][]int{
-		[]int{chr1, bp1, chr2, bp2},
-		[]int{chr2, bp2, chr1, bp1},
+	if chr1 > chr2 || (chr1 == chr2 && bpPair.Bp1 > bpPair.Bp2) {
+		orderedBpPair[0], orderedBpPair[1] = orderedBpPair[1], orderedBpPair[0]
 	}
 
-	for _, obp := range associatedBpPair {
-		ref := bamReader.Header().Refs()[obp[0]]
-		chunks, err := idx.Chunks(ref, obp[1]-500, obp[1]+500)
+	for _, bp := range orderedBpPair {
+		ref := bamReader.Header().Refs()[bp[0]]
+		chunks, err := idx.Chunks(ref, bp[1]-500, bp[1]+500)
 		panicError(err)
 		i, err := bam.NewIterator(bamReader, chunks)
 		panicError(err)
 		for i.Next() {
 			r := i.Record()
-			if r.Ref.ID() == r.MateRef.ID() && r.TempLen < 1000 {
-				continue
+			if r.MateRef.ID() == bp[2] && bp[3]-500 < r.MatePos && r.MatePos < bp[3]+500 {
+				//				sam, _ := i.Record().MarshalText()
+				//				fmt.Printf("%s\n", sam)
+				bw.Write(r)
 			}
-			sam, _ := i.Record().MarshalText()
-			fmt.Printf("%s\n", sam)
 		}
 	}
 
