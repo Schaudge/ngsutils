@@ -33,8 +33,6 @@ import (
 	"github.com/biogo/hts/bam"
 )
 
-var bamReader *bam.Reader
-
 func panicError(err error) {
 	if err != nil {
 		panic(err)
@@ -76,7 +74,7 @@ func createBaiReader(baiFile string) *bam.Index {
 
 func BamViewOnRegion(bamFile string, id, start, end int) error {
 	// standard utils content seek for a special genome region
-	bamReader = seekBamReader(bamFile)
+	bamReader := seekBamReader(bamFile)
 	idx := createBaiReader(getBaiFromBamPath(bamFile))
 
 	ref := bamReader.Header().Refs()[id]
@@ -94,11 +92,12 @@ func BamViewOnRegion(bamFile string, id, start, end int) error {
 // ExtractSvSamSet extract all break point context sam records
 func ExtractSvSamSet(bamFile string, bpPair db.SvBpPair) error {
 	// standard utils content seek for a special genome region
-	bamReader = seekBamReader(bamFile)
+	bamReader := seekBamReader(bamFile)
 	idx := createBaiReader(getBaiFromBamPath(bamFile))
 
 	// output bam file settings
-	outBam, err := os.Create(filepath.Dir(bamFile) + "/" + bpPair.Gene1 + "-" + bpPair.Gene2 + ".bam")
+	outPrefixPath := filepath.Dir(bamFile) + "/" + bpPair.Gene1 + "-" + bpPair.Gene2
+	outBam, err := os.Create(outPrefixPath + ".bam")
 	panicError(err)
 	bw, _ := bam.NewWriter(outBam, bamReader.Header().Clone(), 1)
 	defer bw.Close()
