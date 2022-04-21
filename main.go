@@ -23,13 +23,25 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 
+	"github.com/Schaudge/ngsutils/db"
 	"github.com/Schaudge/ngsutils/stats"
 )
 
 func main() {
 
-	fmt.Println("Begin to some bam process utilities:")
-	stats.BamViewOnRegion(os.Args[1], 6, 140453094, 140453184)
+	accession, bam := os.Args[1], os.Args[2]
+
+	fmt.Println("Begin to some utils process utilities:")
+	svbps := db.GetSvRecordsFromDB(accession)
+
+	for _, sv := range svbps {
+		fmt.Printf("Gene1: %s with break point %s:%d, Gene2: %s with break point %s:%d\n",
+			sv.Gene1, sv.Chr1, sv.Bp1, sv.Gene2, sv.Chr2, sv.Bp2)
+		bpChr1, _ := strconv.Atoi(sv.Chr1)
+		bpChr2, _ := strconv.Atoi(sv.Chr2)
+		stats.ExtractSvSamSet(bam, bpChr1-1, sv.Bp1, bpChr2-1, sv.Bp2)
+	}
 
 }

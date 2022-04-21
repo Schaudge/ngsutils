@@ -641,7 +641,7 @@ func stdinMain(cli *cliarg) int {
 		panic("excord: cant specify prefix without region")
 	}
 	if !xopen.IsStdin() {
-		panic("excord: bam streamed to sdin when no region is specified")
+		panic("excord: utils streamed to sdin when no region is specified")
 	}
 	if cli.DiscordantDistance == 0 {
 		panic("excord: when reading from stdin, you must provide a discordant distance")
