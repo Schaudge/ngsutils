@@ -94,7 +94,7 @@ func BamViewOnRegion(bamFile string, id, start, end int) error {
 // ExtractSvSamSet extract all break point context sam records
 func ExtractSvSamSet(bamFile string, bpPair db.SvBpPair) error {
 	accession := strings.Split(filepath.Base(bamFile), "_")
-	outBamFile := filepath.Dir(bamFile) + "/" + accession[0] + bpPair.Gene1 + "-" + bpPair.Gene2 + ".bam"
+	outBamFile := filepath.Dir(bamFile) + "/" + accession[0] + "_" + bpPair.Gene1 + "-" + bpPair.Gene2 + ".bam"
 	defer utils.CreateBamIndex(outBamFile)
 
 	// standard utils for records seek on a special genome region
