@@ -31,7 +31,7 @@ func main() {
 
 	accession, bam := os.Args[1], os.Args[2]
 
-	fmt.Println("Begin to some utils process utilities:")
+	fmt.Println("Begin to start some ngs-utils process:")
 	svbps := db.GetSvRecordsFromDB(accession)
 
 	for _, sv := range svbps {

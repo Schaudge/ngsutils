@@ -41,10 +41,8 @@ func panicError(err error) {
 }
 
 // seekBamReader creates an io.ReadSeeker BAM reader from file.
-func seekBamReader(bamFile string) *bam.Reader {
-	fh, err := os.Open(bamFile)
-	panicError(err)
-	reader, err := bam.NewReader(io.ReadSeeker(fh), 1)
+func seekBamReader(bh *os.File) *bam.Reader {
+	reader, err := bam.NewReader(io.ReadSeeker(bh), 1)
 	panicError(err)
 	return reader
 }
@@ -65,7 +63,7 @@ func getBaiFromBamPath(bamFile string) string {
 
 // createBaiReader creates a BAI reader from file path.
 func createBaiReader(baiFile string) *bam.Index {
-	fh, err := ioutil.ReadFile(baiFile)
+	fh, err := ioutil.ReadFile(baiFile) // auto open/close file
 	panicError(err)
 	reader, err := bam.ReadIndex(bytes.NewReader(fh))
 	panicError(err)
@@ -73,8 +71,11 @@ func createBaiReader(baiFile string) *bam.Index {
 }
 
 func BamViewOnRegion(bamFile string, id, start, end int) error {
-	// standard utils content seek for a special genome region
-	bamReader := seekBamReader(bamFile)
+	// standard utils for records seek on a special genome region
+	bh, err := os.Open(bamFile) // close if open success
+	panicError(err)
+	defer bh.Close()
+	bamReader := seekBamReader(bh)
 	idx := createBaiReader(getBaiFromBamPath(bamFile))
 
 	ref := bamReader.Header().Refs()[id]
@@ -91,8 +92,11 @@ func BamViewOnRegion(bamFile string, id, start, end int) error {
 
 // ExtractSvSamSet extract all break point context sam records
 func ExtractSvSamSet(bamFile string, bpPair db.SvBpPair) error {
-	// standard utils content seek for a special genome region
-	bamReader := seekBamReader(bamFile)
+	// standard utils for records seek on a special genome region
+	bh, err := os.Open(bamFile) // close if open success
+	panicError(err)
+	defer bh.Close()
+	bamReader := seekBamReader(bh)
 	idx := createBaiReader(getBaiFromBamPath(bamFile))
 
 	// output bam file settings
@@ -100,6 +104,7 @@ func ExtractSvSamSet(bamFile string, bpPair db.SvBpPair) error {
 	outBam, err := os.Create(outPrefixPath + ".bam")
 	panicError(err)
 	bw, _ := bam.NewWriter(outBam, bamReader.Header().Clone(), 1)
+	defer outBam.Close()
 	defer bw.Close()
 
 	chr1, chr2 := utils.CtgName2Id(bpPair.Chr1), utils.CtgName2Id(bpPair.Chr2)
