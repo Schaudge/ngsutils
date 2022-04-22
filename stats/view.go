@@ -27,6 +27,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/Schaudge/ngsutils/db"
 	"github.com/Schaudge/ngsutils/utils"
@@ -92,6 +93,10 @@ func BamViewOnRegion(bamFile string, id, start, end int) error {
 
 // ExtractSvSamSet extract all break point context sam records
 func ExtractSvSamSet(bamFile string, bpPair db.SvBpPair) error {
+	accession := strings.Split(filepath.Base(bamFile), "_")
+	outBamFile := filepath.Dir(bamFile) + "/" + accession[0] + bpPair.Gene1 + "-" + bpPair.Gene2 + ".bam"
+	defer utils.CreateBamIndex(outBamFile)
+
 	// standard utils for records seek on a special genome region
 	bh, err := os.Open(bamFile) // close if open success
 	panicError(err)
@@ -100,11 +105,10 @@ func ExtractSvSamSet(bamFile string, bpPair db.SvBpPair) error {
 	idx := createBaiReader(getBaiFromBamPath(bamFile))
 
 	// output bam file settings
-	outPrefixPath := filepath.Dir(bamFile) + "/" + bpPair.Gene1 + "-" + bpPair.Gene2
-	outBam, err := os.Create(outPrefixPath + ".bam")
+	ob, err := os.Create(outBamFile)
 	panicError(err)
-	bw, _ := bam.NewWriter(outBam, bamReader.Header().Clone(), 1)
-	defer outBam.Close()
+	bw, _ := bam.NewWriter(ob, bamReader.Header().Clone(), 1)
+	defer ob.Close()
 	defer bw.Close()
 
 	chr1, chr2 := utils.CtgName2Id(bpPair.Chr1), utils.CtgName2Id(bpPair.Chr2)
