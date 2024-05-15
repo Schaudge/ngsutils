@@ -37,7 +37,6 @@ import (
 func panicError(err error) {
 	if err != nil {
 		panic(err)
-		os.Exit(-1)
 	}
 }
 
@@ -75,7 +74,12 @@ func BamViewOnRegion(bamFile string, id, start, end int) error {
 	// standard utils for records seek on a special genome region
 	bh, err := os.Open(bamFile) // close if open success
 	panicError(err)
-	defer bh.Close()
+	defer func(bh *os.File) {
+		err := bh.Close()
+		if err != nil {
+
+		}
+	}(bh)
 	bamReader := seekBamReader(bh)
 	idx := createBaiReader(getBaiFromBamPath(bamFile))
 
@@ -95,12 +99,22 @@ func BamViewOnRegion(bamFile string, id, start, end int) error {
 func ExtractSvSamSet(bamFile string, bpPair db.SvBpPair) error {
 	accession := strings.Split(filepath.Base(bamFile), "_")
 	outBamFile := filepath.Dir(bamFile) + "/" + accession[0] + "_" + bpPair.Gene1 + "-" + bpPair.Gene2 + ".bam"
-	defer utils.CreateBamIndex(outBamFile)
+	defer func(bamFile string) {
+		err := utils.CreateBamIndex(bamFile)
+		if err != nil {
+
+		}
+	}(outBamFile)
 
 	// standard utils for records seek on a special genome region
 	bh, err := os.Open(bamFile) // close if open success
 	panicError(err)
-	defer bh.Close()
+	defer func(bh *os.File) {
+		err := bh.Close()
+		if err != nil {
+
+		}
+	}(bh)
 	bamReader := seekBamReader(bh)
 	idx := createBaiReader(getBaiFromBamPath(bamFile))
 
@@ -108,8 +122,18 @@ func ExtractSvSamSet(bamFile string, bpPair db.SvBpPair) error {
 	ob, err := os.Create(outBamFile)
 	panicError(err)
 	bw, _ := bam.NewWriter(ob, bamReader.Header().Clone(), 1)
-	defer ob.Close()
-	defer bw.Close()
+	defer func(ob *os.File) {
+		err := ob.Close()
+		if err != nil {
+
+		}
+	}(ob)
+	defer func(bw *bam.Writer) {
+		err := bw.Close()
+		if err != nil {
+
+		}
+	}(bw)
 
 	chr1, chr2 := utils.CtgName2Id(bpPair.Chr1), utils.CtgName2Id(bpPair.Chr2)
 	orderedBpPair := [][]int{
@@ -131,7 +155,10 @@ func ExtractSvSamSet(bamFile string, bpPair db.SvBpPair) error {
 			if r.MateRef.ID() == bp[2] && bp[3]-500 < r.MatePos && r.MatePos < bp[3]+500 {
 				//				sam, _ := i.Record().MarshalText()
 				//				fmt.Printf("%s\n", sam)
-				bw.Write(r)
+				err := bw.Write(r)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
